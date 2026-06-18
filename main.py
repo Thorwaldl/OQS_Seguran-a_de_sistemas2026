@@ -1,50 +1,62 @@
-# This is a sample Python script.
-
-# Press Ctrl+F5 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
-import oqs
-import time
-
-kemalg = "ML-KEM-768"
-
-# KeyGen
-inicio = time.perf_counter()
-
-server = oqs.KeyEncapsulation(kemalg)
-public_key = server.generate_keypair()
-
-fim = time.perf_counter()
-
-tempo_keygen = (fim - inicio) * 1000
+from benchmark import KEMBenchmark
+from exporter import CsvExporter
 
 
-# Encapsulation
-client = oqs.KeyEncapsulation(kemalg)
+algorithms = [
 
-inicio = time.perf_counter()
+    "ML-KEM-512",
+    "ML-KEM-768",
+    "ML-KEM-1024",
 
-ciphertext, shared_secret_client = client.encap_secret(public_key)
+    "Kyber512",
+    "Kyber768",
+    "Kyber1024",
 
-fim = time.perf_counter()
+    "sntrup761",
 
-tempo_encap = (fim - inicio) * 1000
+    "FrodoKEM-640-SHAKE",
+    "FrodoKEM-976-SHAKE"
+]
 
+benchmark = KEMBenchmark(
+    iterations=100
+)
 
-# Decapsulation
-inicio = time.perf_counter()
+results = []
 
-shared_secret_server = server.decap_secret(ciphertext)
+for algorithm in algorithms:
 
-fim = time.perf_counter()
+    print(f"\nExecutando {algorithm}")
 
-tempo_decap = (fim - inicio) * 1000
+    try:
 
+        result = benchmark.execute(
+            algorithm
+        )
 
-print(f"Algoritmo: {kemalg}")
-print(f"KeyGen: {tempo_keygen:.3f} ms")
-print(f"Encapsulation: {tempo_encap:.3f} ms")
-print(f"Decapsulation: {tempo_decap:.3f} ms")
-print(f"Public Key: {len(public_key)} bytes")
-print(f"Ciphertext: {len(ciphertext)} bytes")
-print(f"Shared Secret: {len(shared_secret_client)} bytes")
+        results.append(result)
+
+        print(
+            f"KeyGen: {result.avg_keygen_ms:.3f} ms"
+        )
+
+        print(
+            f"Encap: {result.avg_encap_ms:.3f} ms"
+        )
+
+        print(
+            f"Decap: {result.avg_decap_ms:.3f} ms"
+        )
+
+    except Exception as ex:
+
+        print(
+            f"Erro em {algorithm}: {ex}"
+        )
+
+CsvExporter.export(
+    results,
+    "benchmarks/benchmark_results.csv"
+)
+
+print("\nBenchmark concluído.")
